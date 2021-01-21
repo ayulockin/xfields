@@ -10,6 +10,8 @@ import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 tf.get_logger().setLevel('ERROR')
 
+import wandb
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset',  type=str, 
                     help='path to dataset',        default = 'dataset/view_light_time/pomegranate')
@@ -33,11 +35,18 @@ parser.add_argument('--load_pretrained', type=bool,
                     help='loading pretrained model',default = False)
 parser.add_argument('--savepath', type=str,
                     help='saving path',             default = 'results/')
+parser.add_argument('--wandb_entity', type=str, 
+                    help='provide entity name for wandb init', default='wandb')
+parser.add_argument('--wandb_project', type=str, 
+                    help='provide project name for wandb init', default='xfields')
 
 args = parser.parse_args()
 
 
 def run_training(args):
+    print('---------- Initialize W&B run for experiment tracking----------\n')
+    run = wandb.init(entity=args.wandb_entity, project=args.wandb_project)
+    wandb.config.update(args)
 
     print('---------- Perform Training ----------')
     
@@ -59,7 +68,6 @@ def run_training(args):
         os.mkdir( os.path.join(savedir,"saved training") )
         print('creating directory %s'%(os.path.join(savedir,"saved training")))
 
-    
     
     print('XField type: %s'%(args.type))
     print( 'Dimension of input xfield: %s'%(args.dim))
@@ -192,11 +200,12 @@ def run_training(args):
                    l1_loss_t = l1_loss_t + l1loss
     
                    print('\r Epoch %3.0d  Iteration %3.0d of %3.0d   Cumulative L1 loss = %3.3f'%(epoch,id+1,epoch_size,l1_loss_t),end=" " )
-        
+                   wandb.log({'Cumulative L1 loss': l1_loss_t})
         
                                             
                l1_loss_t = l1_loss_t/epoch_size
                print(" elapsed time %3.1f m  Averaged L1 loss = %3.5f "%((time.time()-st)/60,l1_loss_t))
+               wandb.log({'epoch': epoch, 'Averaged L1 loss': l1_loss_t})
         
                if l1_loss_t < min_loss:
                       saver.save(sess,"%s/trained model/model.ckpt"%(savedir))
@@ -214,15 +223,19 @@ def run_training(args):
                                                                             
                out_img = np.minimum(np.maximum(out_img,0.0),1.0)
                cv2.imwrite("%s/saved training/recons_light.png"%(savedir),np.uint8(out_img[0,::]*255))
+               wandb.log({'Reconstructed Light': [wandb.Image("%s/saved training/recons_light.png"%(savedir))]})
         
                flow_color = flow_vis.flow_to_color(flows_out[0,:,:,0:2], convert_to_bgr=False)
                cv2.imwrite("%s/saved training/flow_light.png"%(savedir),np.uint8(flow_color))
+               wandb.log({'Flow Light': [wandb.Image("%s/saved training/flow_light.png"%(savedir))]})
                
                flow_color = flow_vis.flow_to_color(flows_out[0,:,:,2:4], convert_to_bgr=False)
                cv2.imwrite("%s/saved training/flow_view.png"%(savedir),np.uint8(flow_color))
+               wandb.log({'Flow View': [wandb.Image("%s/saved training/flow_view.png"%(savedir))]})
           
                flow_color = flow_vis.flow_to_color(flows_out[0,:,:,4:6], convert_to_bgr=False)
                cv2.imwrite("%s/saved training/flow_time.png"%(savedir),np.uint8(flow_color))
+               wandb.log({'Flow Time': [wandb.Image("%s/saved training/flow_time.png"%(savedir))]})
     
                    
                pair =  all_pairs[3*center + 1,::]  
@@ -232,6 +245,7 @@ def run_training(args):
                   
                out_img = np.minimum(np.maximum(out_img,0.0),1.0)
                cv2.imwrite("%s/saved training/recons_view.png"%(savedir),np.uint8(out_img[0,::]*255))
+               wandb.log({'Reconstructed View': [wandb.Image("%s/saved training/recons_view.png"%(savedir))]})
         
         
                pair =  all_pairs[3*center + 2,::]
@@ -241,6 +255,7 @@ def run_training(args):
                                                                                                                                                    
                out_img = np.minimum(np.maximum(out_img,0.0),1.0)
                cv2.imwrite("%s/saved training/recons_time.png"%(savedir),np.uint8(out_img[0,::]*255))
+               wandb.log({'Reconstructed Time': [wandb.Image("%s/saved training/recons_time.png"%(savedir))]})
                epoch  = epoch + 1
               
                    
@@ -326,13 +341,12 @@ def run_training(args):
         
 
         img_mov.release()
-        flow_mov.release()
-        
+        flow_mov.release()    
+
+        wandb.log({"epoch_recons": wandb.Video('%s/saved training/epoch_recons.mp4'%(savedir), fps=4, format="gif")})
+        wandb.log({"epoch_flows": wandb.Video('%s/saved training/epoch_flows.mp4'%(savedir), fps=4, format="gif")})
+
              
-        
-        
-       
 if __name__=='__main__':
-    
 
     run_training(args)
