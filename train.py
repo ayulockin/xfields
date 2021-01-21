@@ -45,7 +45,7 @@ args = parser.parse_args()
 
 def run_training(args):
     print('---------- Initialize W&B run for experiment tracking----------\n')
-    run = wandb.init(entity=args.wandb_entity, project=args.wandb_project)
+    run = wandb.init(entity=args.wandb_entity, project=args.wandb_project, job_type='train')
     wandb.config.update(args)
 
     print('---------- Perform Training ----------')

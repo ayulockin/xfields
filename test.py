@@ -33,12 +33,18 @@ parser.add_argument('--scale',      type=int,
                     help='number of intermediate points',     default = 90)
 parser.add_argument('--fps',      type=float,
                     help='output video frame rate',  default = 90)
+parser.add_argument('--wandb_entity', type=str, 
+                    help='provide entity name for wandb init', default='wandb')
+parser.add_argument('--wandb_project', type=str, 
+                    help='provide project name for wandb init', default='xfields')
 
 args = parser.parse_args()
 
 
 def run_test(args):
-
+    print('---------- Initialize W&B run for experiment tracking----------\n')
+    run = wandb.init(entity=args.wandb_entity, project=args.wandb_project, job_type='train')
+    wandb.config.update(args)
     
     print('---------- Perform Testing ----------')
 
@@ -180,6 +186,7 @@ def run_test(args):
 
     
         out.release()
+        wandb.log({"rendered": wandb.Video('%s/rendered videos/rendered.mp4'%(savedir), fps=4, format="mp4")})
     
     
     
@@ -244,6 +251,7 @@ def run_test(args):
                 print('\r interpolated image %d of %d'%(id+1,len(rendering_path)),end=" " )
         
             out.release()
+            wandb.log({"rendered": wandb.Video('%s/rendered videos/rendered_%s.mp4'%(savedir,case), fps=4, format="mp4")})
             
             
 
