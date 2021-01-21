@@ -299,11 +299,12 @@ def run_training(args):
     
                    l1_loss_t = l1_loss_t + l1loss
                    print('\r Epoch %3.0d  Iteration %3.0d of %3.0d   Cumulative L1 loss = %3.3f'%(epoch,id+1,epoch_size,l1_loss_t),end=" " )
-        
+                   wandb.log({'Cumulative L1 loss': l1_loss_t})
                                             
                l1_loss_t = l1_loss_t/epoch_size
                print(" elapsed time %3.1f m  Averaged L1 loss = %3.5f"%((time.time()-st)/60,l1_loss_t))
-        
+               wandb.log({'epoch': epoch, 'Averaged L1 loss': l1_loss_t})
+
                if l1_loss_t < min_loss:
                       saver.save(sess,"%s/trained model/model.ckpt"%(savedir))
                       min_loss = l1_loss_t
@@ -313,12 +314,11 @@ def run_training(args):
                   
                    albedo_out = np.minimum(np.maximum(sess.run(albedo),0.0),1.0)
                    cv2.imwrite("%s/saved training/albedo.png"%(savedir),np.uint8(albedo_out[0,:,:,:]*255))
-
-                  
-        
+                   wandb.log({'Albedo': [wandb.Image("%s/saved training/albedo.png"%(savedir))]})
             
                center = np.prod(dims)//2 
                cv2.imwrite("%s/saved training/reference.png"%(savedir),np.uint8(images[center,::]*255))
+               wandb.log({'Reference': [wandb.Image("%s/saved training/reference.png"%(savedir))]})
        
                pair =  all_pairs[(len(all_pairs)//len(images)) *center,::]
     
@@ -327,9 +327,12 @@ def run_training(args):
                                                                             
                out_img = np.minimum(np.maximum(out_img,0.0),1.0)
                cv2.imwrite("%s/saved training/recons.png"%(savedir),np.uint8(out_img[0,::]*255))
+               wandb.log({'Reconstruction': [wandb.Image("%s/saved training/recons.png"%(savedir))]})
         
                flow_color = flow_vis.flow_to_color(flows_out[0,:,:,0:2], convert_to_bgr=False)
                cv2.imwrite("%s/saved training/flow.png"%(savedir),np.uint8(flow_color))
+               wandb.log({'Flow': [wandb.Image("%s/saved training/flow.png"%(savedir))]})
+
                img_mov.write(np.uint8(out_img[0,::]*255))
                flow_mov.write(np.uint8(flow_color))
                epoch  = epoch + 1
