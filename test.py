@@ -9,6 +9,8 @@ import argparse
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 tf.get_logger().setLevel('ERROR')
 
+import wandb
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset',  type=str, 
